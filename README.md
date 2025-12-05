@@ -7,7 +7,7 @@ Dataset: [QEvasion](https://huggingface.co/datasets/ailsntua/QEvasion)
 ## Group Members
 | Name      | Student ID | 
 | :---        |    :----:   | 
-| Stefano Zizzi      | s346595       | 
+| Stefano Zizzi     | s346595       | 
 | Alessio Perrotti   | s346737        | 
 | Riccardo Vaccari   | s348856        | 
 | Davide Candela   | s347245        | 
