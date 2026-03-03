@@ -11,6 +11,6 @@ Dataset: [QEvasion](https://huggingface.co/datasets/ailsntua/QEvasion)
 | Alessio Perrotti   | s346737        | 
 | Riccardo Vaccari   | s348856        | 
 | Davide Candela   | s347245        | 
-| Luca LOndesani   | s346978      | 
+| Luca Lodesani   | s346978      | 
 
 
