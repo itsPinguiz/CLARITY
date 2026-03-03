@@ -5,7 +5,7 @@
 # Target: PyTorch 2.9.1, NumPy 2.3.5
 # -----------------------------------------------------------------------------
 
-FROM nvidia/cuda:12.6.3-devel-ubuntu24.04
+FROM nvidia/cuda:12.5.0-runtime-ubuntu22.04
 
 # -----------------------------------------------------------------------------
 # 1. Environment Configuration
