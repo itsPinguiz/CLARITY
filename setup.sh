@@ -1,6 +1,6 @@
 #!/bin/bash
-# Description: Setup script to initialize and open the devcontainer, 
-# and ensure the dataset is properly downloaded.
+# Description: Setup script to initialize the project environment using a virtual environment,
+# install dependencies, and ensure the dataset is properly downloaded.
 
 set -e
 
@@ -19,53 +19,48 @@ else
     echo "[INFO] .env file found."
 fi
 
-# Check if Docker is running
-if ! docker info >/dev/null 2>&1; then
-    echo "[ERROR] Docker is not running or you do not have permission to access it."
-    echo "Please start Docker and try running this script again."
+# Locate Python
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    echo "[ERROR] Python not found. Please install Python 3."
     exit 1
 fi
 
-echo "[INFO] Docker is running."
+echo "[INFO] Using Python: $($PYTHON_CMD --version)"
 
-# Check if devcontainer CLI is accessible
-if ! command -v devcontainer &> /dev/null; then
-    echo "[WARNING] 'devcontainer' CLI not found on host."
-    echo "You can install it with: npm install -g @devcontainers/cli"
-    echo "Or just open VS Code in this directory and let it rebuild the container."
-    
-    # Fallback to local python dataset downloader
-    echo "[INFO] Attempting to download dataset and models locally as fallback..."
-    if command -v python3 &> /dev/null || command -v python &> /dev/null; then
-        PYTHON_CMD=$(command -v python3 || command -v python)
-        
-        # Check if datasets is installed, if not, create a temporary venv
-        if ! $PYTHON_CMD -c "import datasets; import huggingface_hub" &> /dev/null; then
-            echo "[INFO] Required packages not found. Creating a temporary virtual environment..."
-            $PYTHON_CMD -m venv .tmp_venv
-            source .tmp_venv/bin/activate
-            # Upgrade pip and install datasets
-            pip install --upgrade pip > /dev/null 2>&1
-            pip install datasets huggingface_hub > /dev/null 2>&1
-            python scripts/download_dataset.py
-            deactivate
-            rm -rf .tmp_venv
-        else
-            $PYTHON_CMD scripts/download_dataset.py
-        fi
-    else
-        echo "[ERROR] Python not found. Could not download dataset locally."
-    fi
-    exit 0
+# Create virtual environment if it doesn't exist
+VENV_DIR=".venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo ">> 1. Creating virtual environment in $VENV_DIR..."
+    $PYTHON_CMD -m venv "$VENV_DIR"
+else
+    echo ">> 1. Virtual environment $VENV_DIR already exists."
 fi
 
-echo ">> 1. Building and starting the development container..."
-echo "This might take a while if the container is not yet built."
-devcontainer up --workspace-folder .
+# Activate virtual environment
+echo "[INFO] Activating virtual environment..."
+source "$VENV_DIR/bin/activate"
 
-echo ">> 2. Checking and downloading datasets inside the container..."
-# Run dataset download script natively inside the devcontainer using its Python environment
-devcontainer exec --workspace-folder . python scripts/download_dataset.py
+# Install dependencies
+echo ">> 2. Installing dependencies from requirements.txt..."
+pip install --upgrade pip > /dev/null 2>&1
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+else
+    echo "[WARNING] requirements.txt not found. Skipping dependency installation."
+fi
+
+# Download dataset
+echo ">> 3. Checking and downloading datasets..."
+if [ -f "scripts/download_dataset.py" ]; then
+    python scripts/download_dataset.py
+else
+    echo "[WARNING] scripts/download_dataset.py not found. Skipping dataset download."
+fi
 
 echo "=== Setup Complete ==="
-echo "You can now connect to the container using VS Code! (e.g. 'code .')"
+echo "You can now activate the virtual environment using:"
+echo "source $VENV_DIR/bin/activate"
