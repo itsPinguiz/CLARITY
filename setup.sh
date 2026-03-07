@@ -1,6 +1,5 @@
 #!/bin/bash
-# Description: Setup script to initialize the project environment using a virtual environment,
-# install dependencies, and ensure the dataset is properly downloaded.
+# Description: Smart setup script for CLARITY. Adapts to Local vs Colab environments.
 
 set -e
 
@@ -19,48 +18,65 @@ else
     echo "[INFO] .env file found."
 fi
 
-# Locate Python
-if command -v python3 &> /dev/null; then
-    PYTHON_CMD="python3"
-elif command -v python &> /dev/null; then
-    PYTHON_CMD="python"
+# ==========================================
+# GESTIONE AMBIENTE: Colab vs Locale
+# ==========================================
+
+# Rileva se ci troviamo dentro Google Colab controllando la directory /content
+if [ -d "/content" ] && [[ "$PWD" == *"/content"* ]]; then
+    echo "[INFO] Ambiente Google Colab rilevato."
+    echo "[INFO] Salto la creazione del venv (non necessario in Colab)."
+    
+    echo ">> Installazione delle dipendenze nell'ambiente globale di Colab..."
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+    else
+        echo "[WARNING] requirements.txt non trovato."
+    fi
+
 else
-    echo "[ERROR] Python not found. Please install Python 3."
-    exit 1
+    # Comportamento normale per PC Locali
+    echo "[INFO] Ambiente locale rilevato."
+    
+    if command -v python3 &> /dev/null; then
+        PYTHON_CMD="python3"
+    else
+        PYTHON_CMD="python"
+    fi
+    echo "[INFO] Using Python: $($PYTHON_CMD --version)"
+
+    VENV_DIR=".venv"
+    if [ ! -d "$VENV_DIR" ]; then
+        echo ">> 1. Creating virtual environment in $VENV_DIR..."
+        $PYTHON_CMD -m venv "$VENV_DIR"
+    else
+        echo ">> 1. Virtual environment $VENV_DIR already exists."
+    fi
+
+    echo "[INFO] Activating virtual environment..."
+    source "$VENV_DIR/bin/activate"
+
+    echo ">> 2. Installing dependencies from requirements.txt..."
+    pip install --upgrade pip > /dev/null 2>&1
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+    fi
 fi
 
-echo "[INFO] Using Python: $($PYTHON_CMD --version)"
+# ==========================================
+# DOWNLOAD DATASET
+# ==========================================
 
-# Create virtual environment if it doesn't exist
-VENV_DIR=".venv"
-if [ ! -d "$VENV_DIR" ]; then
-    echo ">> 1. Creating virtual environment in $VENV_DIR..."
-    $PYTHON_CMD -m venv "$VENV_DIR"
-else
-    echo ">> 1. Virtual environment $VENV_DIR already exists."
-fi
-
-# Activate virtual environment
-echo "[INFO] Activating virtual environment..."
-source "$VENV_DIR/bin/activate"
-
-# Install dependencies
-echo ">> 2. Installing dependencies from requirements.txt..."
-pip install --upgrade pip > /dev/null 2>&1
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-else
-    echo "[WARNING] requirements.txt not found. Skipping dependency installation."
-fi
-
-# Download dataset
 echo ">> 3. Checking and downloading datasets..."
 if [ -f "scripts/download_dataset.py" ]; then
+    # Se siamo nel venv userà il python del venv, su Colab userà quello globale
     python scripts/download_dataset.py
 else
     echo "[WARNING] scripts/download_dataset.py not found. Skipping dataset download."
 fi
 
 echo "=== Setup Complete ==="
-echo "You can now activate the virtual environment using:"
-echo "source $VENV_DIR/bin/activate"
+if [ ! -d "/content" ]; then
+    echo "You can now activate the virtual environment using:"
+    echo "source $VENV_DIR/bin/activate"
+fi

@@ -1,0 +1,31 @@
+%%bash
+set -e
+
+REPO_URL="https://github.com/itsPinguiz/CLARITY
+BRANCH="main"
+TARGET_DIR="/content/progettoLLM"
+
+if [ ! -d "$TARGET_DIR/.git" ]; then
+  git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TARGET_DIR"
+else
+  cd "$TARGET_DIR"
+  git fetch origin "$BRANCH"
+  git reset --hard "origin/$BRANCH"
+  git clean -fd
+fi
+
+import os, sys
+REPO_DIR = "/content/progettoLLM"
+os.chdir(REPO_DIR)
+if REPO_DIR not in sys.path:
+    sys.path.insert(0, REPO_DIR)
+
+%%bash
+cd /content/progettoLLM
+pip install -r requirements.txt
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+PERSIST_DIR = "/content/drive/MyDrive/progettoLLM"
+!mkdir -p "$PERSIST_DIR"/{checkpoints,cache,data,artifacts}
