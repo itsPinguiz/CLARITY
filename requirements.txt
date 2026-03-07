@@ -39,7 +39,7 @@ huggingface-hub==0.27.0
 # --- Efficient Fine-Tuning (PEFT) ---
 # Required for running large models (Llama-3, Mistral) on university GPUs
 # bitsandbytes: For 4-bit/8-bit quantization
-bitsandbytes==0.45.0
+bitsandbytes>=0.46.1
 
 # PEFT: For LoRA/QLoRA implementation
 peft==0.14.0
