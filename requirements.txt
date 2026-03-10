@@ -1,62 +1,20 @@
 # -----------------------------------------------------------------------------
-# SemEval-2026 Task 6: CLARITY - Dependencies
-# Snapshot Date: December 3, 2025
+# SemEval-2026 Task 6: CLARITY - Essential Dependencies
 # -----------------------------------------------------------------------------
 
-# --- Core Scientific Stack (User Requested) ---
-# NumPy 2.3.5: Latest stable, ABI v2 compatible
-numpy==2.3.5
-
-# Matplotlib 3.10.7: Latest stable, improved accessibility features
-matplotlib==3.10.7
-
-# Pandas: For handling the SemEval datasets (CSV/JSONL)
-pandas==2.2.3
-
-# Scikit-learn: Required for 'macro-F1' metric calculation
-scikit-learn==1.6.0
-scipy==1.15.0
-
 # --- Deep Learning Framework (PyTorch) ---
-# PyTorch 2.9.1: Stable release for Dec 2025
-# Target: CUDA 12.6/12.8
-# The extra-index-url ensures we get the CUDA wheels, not CPU
 --extra-index-url https://download.pytorch.org/whl/cu126
 torch==2.9.1
-torchvision
-torchaudio==2.9.1
 
 # --- LLM & NLP Ecosystem (Hugging Face) ---
-# Transformers: 4.50.1 (Hypothetical Dec 2025 version)
 transformers==4.50.1
-tokenizers==0.21.0
 datasets==3.2.0
-
-# Accelerate: Critical for distributing LLMs across generic hardware
-accelerate==1.2.0
 huggingface-hub==0.27.0
+accelerate==1.2.0
 
-# --- Efficient Fine-Tuning (PEFT) ---
-# Required for running large models (Llama-3, Mistral) on university GPUs
+# --- Efficient Fine-Tuning ---
 # bitsandbytes: For 4-bit/8-bit quantization
 bitsandbytes>=0.46.1
 
-# PEFT: For LoRA/QLoRA implementation
-peft==0.14.0
-
-# TRL: Transformer Reinforcement Learning (includes SFTTrainer)
-trl==0.11.4
-
 # --- Interactive Development ---
-jupyterlab==4.3.0
-#ipykernel==6.29.5
-tqdm==4.67.1
-black==24.10.0
-isort==5.13.2
-
-# --- Task Specific ---
-# OpenPYXL for reading Excel files if provided
-openpyxl==3.1.5
-
-# NLTK for basic linguistic preprocessing baselines
-nltk==3.9.1
+#jupyterlab==4.3.0
