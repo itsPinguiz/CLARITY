@@ -29,7 +29,14 @@ if [ -d "/content" ] && [[ "$PWD" == *"/content"* ]]; then
     
     echo ">> Installazione delle dipendenze nell'ambiente globale di Colab..."
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
+        REQ_HASH=$(md5sum requirements.txt | awk '{print $1}')
+        if [ -f ".requirements_hash" ] && [ "$REQ_HASH" == "$(cat .requirements_hash)" ]; then
+            echo "[INFO] Dipendenze già aggiornate rispetto a requirements.txt."
+        else
+            echo "[INFO] Installazione/aggiornamento dipendenze in corso..."
+            pip install -r requirements.txt
+            echo "$REQ_HASH" > .requirements_hash
+        fi
     else
         echo "[WARNING] requirements.txt non trovato."
     fi
@@ -59,7 +66,14 @@ else
     echo ">> 2. Installing dependencies from requirements.txt..."
     pip install --upgrade pip > /dev/null 2>&1
     if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt
+        REQ_HASH=$(md5sum requirements.txt | awk '{print $1}')
+        if [ -f "$VENV_DIR/.requirements_hash" ] && [ "$REQ_HASH" == "$(cat "$VENV_DIR/.requirements_hash")" ]; then
+            echo "[INFO] Dependencies are practically up to date."
+        else
+            echo "[INFO] Requirements changed or first run. Installing dependencies..."
+            pip install -r requirements.txt
+            echo "$REQ_HASH" > "$VENV_DIR/.requirements_hash"
+        fi
     fi
 fi
 
