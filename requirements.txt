@@ -15,6 +15,11 @@ accelerate==1.2.0
 # --- Efficient Fine-Tuning ---
 # bitsandbytes: For 4-bit/8-bit quantization
 bitsandbytes>=0.46.1
+peft>=0.11.1
+trl>=0.9.4
+
+# --- Metrics & Evaluation (Consigliato per i test) ---
+scikit-learn>=1.5.0
 
 # --- Interactive Development ---
 #jupyterlab==4.3.0
