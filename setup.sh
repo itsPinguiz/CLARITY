@@ -76,21 +76,3 @@ else
         fi
     fi
 fi
-
-# ==========================================
-# DOWNLOAD DATASET
-# ==========================================
-
-echo ">> 3. Checking and downloading datasets..."
-if [ -f "scripts/download_dataset.py" ]; then
-    # Se siamo nel venv userà il python del venv, su Colab userà quello globale
-    python scripts/download_dataset.py
-else
-    echo "[WARNING] scripts/download_dataset.py not found. Skipping dataset download."
-fi
-
-echo "=== Setup Complete ==="
-if [ ! -d "/content" ]; then
-    echo "You can now activate the virtual environment using:"
-    echo "source $VENV_DIR/bin/activate"
-fi
