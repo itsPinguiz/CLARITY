@@ -1,61 +1,58 @@
 #!/bin/bash
 # Description: Smart setup script for CLARITY. Adapts to Local vs Colab environments.
+# Uses 'uv' for extremely fast package management.
 
 set -e
 
-# Change directory to the workspace root
 WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$WORKSPACE_DIR"
 
-echo "=== System Initialization: CLARITY Environment ==="
+echo "=== System Initialization: CLARITY Environment (UV Version) ==="
 
-# Check for .env file
 if [ ! -f ".env" ]; then
     echo "[INFO] .env file not found. Creating a default one..."
     echo "HF_TOKEN=\"\"" > .env
-    echo "Please add your Hugging Face token to the .env file if required."
 else
     echo "[INFO] .env file found."
 fi
+
+ensure_uv() {
+    if ! command -v uv &> /dev/null; then
+        echo "[INFO] 'uv' non trovato. Installazione tramite script ufficiale in corso..."
+        # Utilizzo dello script ufficiale di Astral per aggirare il blocco PEP 668 di Ubuntu
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$PATH"
+    fi
+}
 
 # ==========================================
 # GESTIONE AMBIENTE: Colab vs Locale
 # ==========================================
 
-# Rileva se ci troviamo dentro Google Colab controllando la directory /content
 if [ -d "/content" ] && [[ "$PWD" == *"/content"* ]]; then
     echo "[INFO] Ambiente Google Colab rilevato."
-    echo "[INFO] Salto la creazione del venv (non necessario in Colab)."
-    
-    echo ">> Installazione delle dipendenze nell'ambiente globale di Colab..."
+    ensure_uv
+
     if [ -f "requirements.txt" ]; then
         REQ_HASH=$(md5sum requirements.txt | awk '{print $1}')
         if [ -f ".requirements_hash" ] && [ "$REQ_HASH" == "$(cat .requirements_hash)" ]; then
-            echo "[INFO] Dipendenze già aggiornate rispetto a requirements.txt."
+            echo "[INFO] Dipendenze già aggiornate."
         else
-            echo "[INFO] Installazione/aggiornamento dipendenze in corso..."
-            pip install -r requirements.txt
+            echo "[INFO] Installazione dipendenze tramite uv in corso..."
+            # In Colab forziamo --system perché usiamo il container root
+            uv pip install --system --index-strategy unsafe-best-match -r requirements.txt
             echo "$REQ_HASH" > .requirements_hash
         fi
-    else
-        echo "[WARNING] requirements.txt non trovato."
     fi
-
 else
-    # Comportamento normale per PC Locali
     echo "[INFO] Ambiente locale rilevato."
-    
-    if command -v python3 &> /dev/null; then
-        PYTHON_CMD="python3"
-    else
-        PYTHON_CMD="python"
-    fi
-    echo "[INFO] Using Python: $($PYTHON_CMD --version)"
+    ensure_uv
+    export PATH="$HOME/.cargo/bin:$PATH"
 
     VENV_DIR=".venv"
     if [ ! -d "$VENV_DIR" ]; then
-        echo ">> 1. Creating virtual environment in $VENV_DIR..."
-        $PYTHON_CMD -m venv "$VENV_DIR"
+        echo ">> 1. Creating virtual environment using uv in $VENV_DIR..."
+        uv venv "$VENV_DIR"
     else
         echo ">> 1. Virtual environment $VENV_DIR already exists."
     fi
@@ -63,15 +60,15 @@ else
     echo "[INFO] Activating virtual environment..."
     source "$VENV_DIR/bin/activate"
 
-    echo ">> 2. Installing dependencies from requirements.txt..."
-    pip install --upgrade pip > /dev/null 2>&1
+    echo ">> 2. Installing dependencies using uv from requirements.txt..."
     if [ -f "requirements.txt" ]; then
         REQ_HASH=$(md5sum requirements.txt | awk '{print $1}')
         if [ -f "$VENV_DIR/.requirements_hash" ] && [ "$REQ_HASH" == "$(cat "$VENV_DIR/.requirements_hash")" ]; then
             echo "[INFO] Dependencies are practically up to date."
         else
-            echo "[INFO] Requirements changed or first run. Installing dependencies..."
-            pip install -r requirements.txt
+            echo "[INFO] Installing dependencies via uv..."
+            # In locale NON usiamo --system, ma installiamo nel .venv
+            uv pip install --index-strategy unsafe-best-match -r requirements.txt
             echo "$REQ_HASH" > "$VENV_DIR/.requirements_hash"
         fi
     fi
@@ -83,14 +80,7 @@ fi
 
 echo ">> 3. Checking and downloading datasets..."
 if [ -f "scripts/download_dataset.py" ]; then
-    # Se siamo nel venv userà il python del venv, su Colab userà quello globale
     python scripts/download_dataset.py
-else
-    echo "[WARNING] scripts/download_dataset.py not found. Skipping dataset download."
 fi
 
 echo "=== Setup Complete ==="
-if [ ! -d "/content" ]; then
-    echo "You can now activate the virtual environment using:"
-    echo "source $VENV_DIR/bin/activate"
-fi

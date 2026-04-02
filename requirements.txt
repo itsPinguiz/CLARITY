@@ -22,4 +22,7 @@ trl>=0.9.4
 scikit-learn>=1.5.0
 
 # --- Interactive Development ---
-#jupyterlab==4.3.0
+jupyter
+pyarrow
+matplotlib
+seaborn
