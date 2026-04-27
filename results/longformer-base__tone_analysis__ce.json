@@ -1,0 +1,22 @@
+{
+  "model_key": "longformer-base",
+  "aug_name": "tone_analysis",
+  "loss_name": "ce",
+  "timestamp": "2026-04-26T12:53:29",
+  "metrics": {
+    "val_macro_f1": 0.5926358478270553,
+    "val_weighted_f1": 0.6603376825553643,
+    "val_accuracy": 0.6695652173913044,
+    "test_macro_f1": 0.5574770840349942,
+    "test_weighted_f1": 0.6539556712644831,
+    "test_accuracy": 0.6525974025974026
+  },
+  "extra": {
+    "model_id": "allenai/longformer-base-4096",
+    "max_length": 1024,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "clarity",
+    "train_size": 3103
+  }
+}

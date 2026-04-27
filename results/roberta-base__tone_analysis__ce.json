@@ -1,0 +1,22 @@
+{
+  "model_key": "roberta-base",
+  "aug_name": "tone_analysis",
+  "loss_name": "ce",
+  "timestamp": "2026-04-26T13:05:33",
+  "metrics": {
+    "val_macro_f1": 0.6166984090966602,
+    "val_weighted_f1": 0.6893582997166073,
+    "val_accuracy": 0.6985507246376812,
+    "test_macro_f1": 0.5890834645349025,
+    "test_weighted_f1": 0.6676904508536599,
+    "test_accuracy": 0.6688311688311688
+  },
+  "extra": {
+    "model_id": "roberta-base",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "clarity",
+    "train_size": 3103
+  }
+}
