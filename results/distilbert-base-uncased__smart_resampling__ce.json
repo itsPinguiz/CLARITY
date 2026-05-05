@@ -1,0 +1,22 @@
+{
+  "model_key": "distilbert-base-uncased",
+  "aug_name": "smart_resampling",
+  "loss_name": "ce",
+  "timestamp": "2026-04-27T09:05:56",
+  "metrics": {
+    "val_macro_f1": 0.5102483004000901,
+    "val_weighted_f1": 0.6038430145871533,
+    "val_accuracy": 0.6434782608695652,
+    "test_macro_f1": 0.5191209623946197,
+    "test_weighted_f1": 0.6490596133051376,
+    "test_accuracy": 0.6785714285714286
+  },
+  "extra": {
+    "model_id": "distilbert-base-uncased",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "clarity",
+    "train_size": 3096
+  }
+}
