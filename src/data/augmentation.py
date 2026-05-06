@@ -50,7 +50,6 @@ from datasets import DatasetDict, Dataset, concatenate_datasets
 from src.data.resampling import (
     semantic_downsampling,
     paraphrase_upsampling,
-    smart_resampling,
 )
 
 
