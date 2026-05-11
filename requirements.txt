@@ -15,9 +15,19 @@ pandas>=2.2.0
 # Augmentation
 nltk>=3.8.0
 
+# Visualisation
+seaborn>=0.13.0
+
 # Display
 rich>=13.7.0
 
 # Development / notebooks
 jupyter>=1.0.0
 ipywidgets>=8.0.0
+
+# LLM inference — 03_cot_llm.ipynb (GPU / Colab required)
+bitsandbytes>=0.43.3
+wikipedia-api>=2.1.0
+
+# Secrets management (local development)
+python-dotenv>=1.0.0

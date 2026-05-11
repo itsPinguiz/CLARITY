@@ -1,0 +1,14 @@
+{
+  "experiment": "1a_zeroshot_clarity",
+  "n_total": 308,
+  "n_parse_errors": 0,
+  "n_valid": 308,
+  "accuracy": 0.2792,
+  "macro_f1": 0.28,
+  "weighted_f1": 0.332,
+  "per_class_f1": {
+    "Clear Reply": 0.3485,
+    "Ambivalent": 0.3466,
+    "Clear Non-Reply": 0.1449
+  }
+}

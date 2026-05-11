@@ -1,0 +1,7 @@
+ID,Method,Task,Accuracy,Macro F1,Weighted F1,Parse Err
+1a,Zero-Shot,3-class clarity,0.2792,0.28,0.332,0
+2a,CoT (no table),3-class clarity,0.2273,0.1897,0.2432,0
+3a,CoT + table,3-class clarity,0.5877,0.3669,0.5422,0
+1b,Zero-Shot,9-class evasion,0.1055,0.1509,0.0875,0
+2b,CoT (no table),9-class evasion,0.1569,0.1724,0.1318,1
+3b,CoT + table,9-class evasion,0.1715,0.1573,0.1704,1
