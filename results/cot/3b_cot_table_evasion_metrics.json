@@ -1,0 +1,20 @@
+{
+  "experiment": "3b_cot_table_evasion",
+  "n_total": 275,
+  "n_parse_errors": 1,
+  "n_valid": 274,
+  "accuracy": 0.1715,
+  "macro_f1": 0.1573,
+  "weighted_f1": 0.1704,
+  "per_class_f1": {
+    "Explicit": 0.1856,
+    "Implicit": 0.0345,
+    "General": 0.1333,
+    "Partial": 0.0,
+    "Dodging": 0.3423,
+    "Deflection": 0.1111,
+    "Declining to answer": 0.1017,
+    "Claims ignorance": 0.3529,
+    "Clarification": 0.1538
+  }
+}

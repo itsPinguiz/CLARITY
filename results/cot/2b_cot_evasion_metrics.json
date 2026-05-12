@@ -1,0 +1,20 @@
+{
+  "experiment": "2b_cot_evasion",
+  "n_total": 275,
+  "n_parse_errors": 1,
+  "n_valid": 274,
+  "accuracy": 0.1569,
+  "macro_f1": 0.1724,
+  "weighted_f1": 0.1318,
+  "per_class_f1": {
+    "Explicit": 0.0506,
+    "Implicit": 0.0,
+    "General": 0.1591,
+    "Partial": 0.0,
+    "Dodging": 0.313,
+    "Deflection": 0.1287,
+    "Declining to answer": 0.3,
+    "Claims ignorance": 0.2,
+    "Clarification": 0.4
+  }
+}
