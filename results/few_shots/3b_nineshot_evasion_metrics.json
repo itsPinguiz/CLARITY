@@ -1,0 +1,36 @@
+{
+  "accuracy": 0.38636363636363635,
+  "precision": {
+    "Explicit": 0.4931506849315068,
+    "Implicit": 0.5675675675675675,
+    "General": 0.31746031746031744,
+    "Partial/half-answer": 0.0,
+    "Dodging": 0.2682926829268293,
+    "Deflection": 0.125,
+    "Declining to answer": 0.75,
+    "Claims ignorance": 0.4375,
+    "Clarification": 0.0
+  },
+  "recall": {
+    "Explicit": 0.45569620253164556,
+    "Implicit": 0.31343283582089554,
+    "General": 0.6153846153846154,
+    "Partial/half-answer": 0.0,
+    "Dodging": 0.22,
+    "Deflection": 0.05,
+    "Declining to answer": 0.2727272727272727,
+    "Claims ignorance": 0.875,
+    "Clarification": 0.0
+  },
+  "f1": {
+    "Explicit": 0.47368421052631576,
+    "Implicit": 0.40384615384615385,
+    "General": 0.418848167539267,
+    "Partial/half-answer": 0.0,
+    "Dodging": 0.24175824175824176,
+    "Deflection": 0.07142857142857142,
+    "Declining to answer": 0.4,
+    "Claims ignorance": 0.5833333333333334,
+    "Clarification": 0.0
+  }
+}

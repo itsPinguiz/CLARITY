@@ -1,0 +1,11 @@
+{
+  "Point 1A (One-Shot Clarity)": 0.23376623376623376,
+  "Point 2A (Three-Shot Clarity)": 0.2727272727272727,
+  "Point 3A (Nine-Shot Clarity)": 0.2662337662337662,
+  "Point 1B (One-Shot Evasion)": 0.11688311688311688,
+  "Point 2B (Three-Shot Evasion)": 0.30194805194805197,
+  "Point 3B (Nine-Shot Evasion)": 0.38636363636363635,
+  "Point 1C (1-Shot \u2192 Clarity)": 0.2305194805194805,
+  "Point 2C (3-Shot \u2192 Clarity)": 0.6948051948051948,
+  "Point 3C (9-Shot \u2192 Clarity)": 0.685064935064935
+}

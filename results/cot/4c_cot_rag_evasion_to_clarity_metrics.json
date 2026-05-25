@@ -1,0 +1,14 @@
+{
+  "experiment": "4c_cot_rag_evasion_to_clarity",
+  "n_total": 275,
+  "n_parse_errors": 4,
+  "n_valid": 271,
+  "accuracy": 0.5683,
+  "macro_f1": 0.3899,
+  "weighted_f1": 0.5488,
+  "per_class_f1": {
+    "Clear Reply": 0.2151,
+    "Ambivalent": 0.7377,
+    "Clear Non-Reply": 0.2169
+  }
+}

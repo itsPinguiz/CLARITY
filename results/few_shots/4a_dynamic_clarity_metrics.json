@@ -1,0 +1,18 @@
+{
+  "accuracy": 0.38636363636363635,
+  "precision": {
+    "Clear Reply": 0.30434782608695654,
+    "Ambivalent": 0.7682926829268293,
+    "Clear Non-Reply": 0.1891891891891892
+  },
+  "recall": {
+    "Clear Reply": 0.4430379746835443,
+    "Ambivalent": 0.3058252427184466,
+    "Clear Non-Reply": 0.9130434782608695
+  },
+  "f1": {
+    "Clear Reply": 0.36082474226804123,
+    "Ambivalent": 0.4375,
+    "Clear Non-Reply": 0.31343283582089554
+  }
+}
