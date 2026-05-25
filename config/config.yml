@@ -1,0 +1,28 @@
+dataset:
+  use_augmented: true
+  train_path: "dataset/QEvasion/train"
+  test_path: "dataset/QEvasion/test"
+  augmentation:
+    name: "random_deletion" # none, random_deletion,length_category, tone_analysis,semantic_downsampling, paraphrase_upsampling
+    params:
+      aug_prob: 0.1
+      seed: 42
+      augment_minority_only: true
+model:
+  id: "meta-llama/Llama-3.2-3B-Instruct"
+training:
+  enabled: true
+  seed: 42
+  task1:
+    batch_size: 2
+    gradient_accumulation_steps: 4
+    num_train_epochs: 1
+  task2:
+    batch_size: 4
+    gradient_accumulation_steps: 2
+    num_train_epochs: 1
+    max_length: 512
+paths:
+  results_dir: "results"
+  task1_dir: "results/task1"
+  task2_dir: "results/task2"

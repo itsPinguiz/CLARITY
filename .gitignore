@@ -1,6 +1,18 @@
 # Project files
 dataset/
 
+# Model training artifacts
+models/
+results/**/checkpoints/
+results/**/modello_finale/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.gguf
+*.onnx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
