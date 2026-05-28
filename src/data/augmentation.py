@@ -50,6 +50,7 @@ from datasets import DatasetDict, Dataset, concatenate_datasets
 from src.data.resampling import (
     semantic_downsampling,
     paraphrase_upsampling,
+    smart_resampling
 )
 
 
@@ -264,6 +265,7 @@ _AUGMENTATION_REGISTRY: dict[str, Callable] = {
     # ── Model-based resampling (src.data.resampling) ──────────────────────────
     "semantic_downsampling": semantic_downsampling,
     "paraphrase_upsampling": paraphrase_upsampling,
+    "smart_resampling":smart_resampling
 }
 
 

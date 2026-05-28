@@ -18,10 +18,10 @@ Strategies
 
 Interface
 ---------
-All functions follow the same interface as src.data.augmentation:
+All public functions follow the same interface as src.data.augmentation:
     fn(ds: DatasetDict, label2id: dict, **kwargs) -> DatasetDict
 
-Only the training split is modified. Validation and test splits are
+Only the training split is modified; validation and test splits are
 always returned unchanged.
 
 Design notes
@@ -32,22 +32,26 @@ Design notes
   the same string value — currently ``"evasion_label"``.
 - Synthetic rows are marked with ``is_augmented = True`` so downstream
   analysis can distinguish real from generated examples.
+- Per-class target counts (returned by ``_compute_targets``) let each
+  strategy balance classes asymmetrically, which is especially useful
+  with the "soft" strategy.
 
 Dependencies (not in base requirements.txt)
 -------------------------------------------
     pip install sentence-transformers scikit-learn
-    # transformers is already a project dependency
+    # transformers + sentencepiece are already project dependencies
 """
 
 from __future__ import annotations
 
 import random
 from collections import Counter
+from difflib import SequenceMatcher
 from typing import Union
 
 import numpy as np
 import torch
-from datasets import DatasetDict, Dataset, concatenate_datasets
+from datasets import Dataset, DatasetDict, concatenate_datasets
 
 
 # ── Shared constants ──────────────────────────────────────────────────────────
@@ -64,40 +68,60 @@ def _set_seed(seed: int) -> None:
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _compute_target(
+def _compute_targets(
     counts: Counter,
-    strategy: Union[str, int, float],
-) -> int:
+    strategy: Union[str, int, float] = "soft",
+    down_ratio: float = 0.75,
+) -> dict[str, int]:
     """
-    Derive the per-class target count from a strategy descriptor.
+    Derive a per-class target count from a strategy descriptor.
 
     Args:
-        counts   : Counter mapping label string → current example count.
-        strategy : one of:
-                   "mean"     → arithmetic mean of class counts.
-                   "median"   → median of class counts.
-                   "majority" → size of the largest class (no downsampling).
-                   int/float  → absolute target count (cast to int).
+        counts     : Counter mapping label string → current example count.
+        strategy   : Balancing strategy. Options:
+                     "soft"     → (recommended) downsample majority to
+                                  ``down_ratio * max``, upsample minority
+                                  to at most 2× its original size.
+                     "mean"     → arithmetic mean of class counts.
+                     "median"   → median of class counts.
+                     "majority" → size of the largest class (no downsampling).
+                     int/float  → fixed absolute target for every class.
+        down_ratio : Fraction of the majority class to keep when
+                     strategy="soft". Ignored for other strategies.
 
     Returns:
-        Target count as a plain Python int.
+        Dict mapping label string → target int count.
     """
+    if strategy == "soft":
+        max_count = max(counts.values())
+        ceiling = int(max_count * down_ratio)
+        targets: dict[str, int] = {}
+        for lbl, count in counts.items():
+            if count >= ceiling:
+                targets[lbl] = ceiling
+            else:
+                # Upsample by at most 1 paraphrase per original example.
+                targets[lbl] = min(count * 2, ceiling)
+        return targets
+
     if strategy == "mean":
-        return int(sum(counts.values()) / len(counts))
+        t_val = int(sum(counts.values()) / len(counts))
     elif strategy == "median":
-        return int(np.median(list(counts.values())))
+        t_val = int(np.median(list(counts.values())))
     elif strategy == "majority":
-        return max(counts.values())
+        t_val = max(counts.values())
     else:
-        return int(strategy)
+        t_val = int(strategy)
+
+    return {lbl: t_val for lbl in counts}
 
 
 def _backfill_augmented_flag(splits: list[Dataset]) -> list[Dataset]:
     """
     Ensure every split in *splits* has an ``is_augmented`` boolean column.
 
-    Splits that were created before the flag was needed receive
-    ``is_augmented = False`` for every row.
+    Splits created before augmentation began receive ``is_augmented = False``
+    for every row.
 
     Args:
         splits : list of Dataset objects, some of which may already
@@ -109,7 +133,7 @@ def _backfill_augmented_flag(splits: list[Dataset]) -> list[Dataset]:
     if not any("is_augmented" in s.column_names for s in splits):
         return splits  # flag was never added — nothing to backfill
 
-    backfilled = []
+    backfilled: list[Dataset] = []
     for split in splits:
         if "is_augmented" not in split.column_names:
             split = split.add_column("is_augmented", [False] * len(split))
@@ -124,8 +148,9 @@ def _backfill_augmented_flag(splits: list[Dataset]) -> list[Dataset]:
 def semantic_downsampling(
     ds: DatasetDict,
     label2id: dict,
-    target_size: int | None = None,
+    targets: dict[str, int] | None = None,
     strategy: Union[str, int] = "mean",
+    down_ratio: float = 0.75,
     embed_column: str = "interview_answer",
     embed_model_name: str = "all-MiniLM-L6-v2",
     seed: int = 42,
@@ -134,31 +159,30 @@ def semantic_downsampling(
     """
     Reduce over-represented classes while preserving semantic diversity.
 
-    For each class whose training-set count exceeds *target_size*, we:
+    For each class whose training-set count exceeds its target, we:
       1. Encode every example with a SentenceTransformer.
-      2. Cluster the embeddings into *target_size* KMeans groups.
-      3. Keep only the real example closest to each cluster centroid.
+      2. Cluster the embeddings into ``target`` KMeans groups.
+      3. Keep the real example closest to each cluster centroid.
 
-    This guarantees the reduced subset covers the full semantic spread
-    of the original class, unlike random undersampling which may
-    accidentally collapse rare sub-topics.
-
-    Classes at or below the target size are kept entirely intact.
+    This guarantees the reduced subset covers the full semantic spread of
+    the original class, unlike random undersampling, which may accidentally
+    collapse rare sub-topics.  Classes at or below the target are kept intact.
 
     Args:
-        ds              : DatasetDict with train / validation / test splits.
-        label2id        : class → integer id mapping (from label_utils).
-        target_size     : desired number of examples per over-represented
-                          class.  If None, derived from *strategy*.
-        strategy        : "mean" | "median" | "majority" | int.
-                          Ignored when *target_size* is set explicitly.
-        embed_column    : text column used to compute sentence embeddings.
-                          Defaults to ``"interview_answer"``.
-        embed_model_name: SentenceTransformer model identifier.
-        seed            : random seed forwarded to KMeans.
+        ds               : DatasetDict with train / validation / test splits.
+        label2id         : class → integer id mapping (from label_utils).
+        targets          : per-class target counts produced by
+                           ``_compute_targets``. When provided, *strategy*
+                           and *down_ratio* are ignored.
+        strategy         : "soft" | "mean" | "median" | "majority" | int.
+                           Used only when *targets* is None.
+        down_ratio       : fraction of majority class to keep (soft strategy).
+        embed_column     : text column used to compute sentence embeddings.
+        embed_model_name : SentenceTransformer model identifier.
+        seed             : random seed forwarded to KMeans.
 
     Returns:
-        DatasetDict with a downsampled training split.
+        DatasetDict with a downsampled training split; val/test unchanged.
 
     Requires:
         pip install sentence-transformers scikit-learn
@@ -169,23 +193,24 @@ def semantic_downsampling(
         from sklearn.metrics import pairwise_distances_argmin_min
     except ImportError:
         raise ImportError(
-            "sentence-transformers and scikit-learn are required for "
-            "semantic_downsampling.\n"
+            "sentence-transformers and scikit-learn are required.\n"
             "Install with: pip install sentence-transformers scikit-learn"
         )
 
     _set_seed(seed)
     train_ds = ds["train"]
     counts = Counter(train_ds[LABEL_COLUMN])
-    target = target_size if target_size is not None else _compute_target(counts, strategy)
 
-    print(f"[semantic_downsampling] Target size per class : {target}")
+    if targets is None:
+        targets = _compute_targets(counts, strategy=strategy, down_ratio=down_ratio)
 
+    print(f"\n[semantic_downsampling] Initializing '{embed_model_name}' ...")
     embed_model = SentenceTransformer(embed_model_name)
     kept_splits: list[Dataset] = []
 
     for label_str, count in counts.items():
         subset = train_ds.filter(lambda ex, l=label_str: ex[LABEL_COLUMN] == l)
+        target = targets.get(label_str, count)
 
         if count <= target:
             kept_splits.append(subset)
@@ -210,8 +235,13 @@ def semantic_downsampling(
 
     new_train = concatenate_datasets(kept_splits).shuffle(seed=seed)
     print(
-        f"[semantic_downsampling] Train size : {len(train_ds)} → {len(new_train)}"
+        f"[semantic_downsampling] Train size: {len(train_ds)} → {len(new_train)}"
     )
+
+    # Free GPU memory before returning.
+    del embed_model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     return DatasetDict(
         {"train": new_train, "validation": ds["validation"], "test": ds["test"]}
@@ -225,81 +255,124 @@ def semantic_downsampling(
 def paraphrase_upsampling(
     ds: DatasetDict,
     label2id: dict,
-    target_size: int | None = None,
+    targets: dict[str, int] | None = None,
     strategy: Union[str, int] = "mean",
+    down_ratio: float = 0.75,
     paraphrase_column: str = "interview_answer",
     model_name: str = "humarin/chatgpt_paraphraser_on_T5_base",
     batch_size: int = 12,
     max_input_length: int = 512,
-    max_output_length: int = 128,
+    max_output_length: int = 256,
     num_beams: int = 5,
     seed: int = 42,
+    # ── quality-control parameters ────────────────────────────────────────────
+    max_multiplier: float = 2.0,
+    min_diversity_ratio: float = 0.15,
+    min_semantic_similarity: float = 0.60,
+    max_semantic_similarity: float = 0.92,
+    use_semantic_filter: bool = True,
+    semantic_model_name: str = "all-MiniLM-L6-v2",
+    max_retries_per_sample: int = 3,
     **kwargs,
 ) -> DatasetDict:
     """
-    Grow under-represented classes using T5-based paraphrase generation.
+    Grow under-represented classes using high-quality T5-based paraphrases.
 
-    For each class whose training-set count falls below *target_size*, we:
-      1. Sample existing examples (with replacement when needed).
-      2. Generate a paraphrase of *paraphrase_column* for each sampled row.
-      3. Mark synthetic rows with ``is_augmented = True``.
-      4. Concatenate the synthetic rows with the original class examples.
+    Quality-control pipeline
+    ─────────────────────────
+    1. **Capped upsampling** — each class grows by at most
+       ``count * max_multiplier`` examples, preventing extreme oversampling
+       of very rare classes.
 
-    Only *paraphrase_column* (the interview answer) is rewritten.
-    All other columns — the question, metadata, label — are copied
-    verbatim from the source row so no information is fabricated.
+    2. **Cyclic source sampling** — source examples are cycled evenly so no
+       single example is paraphrased more than ``ceil(needed / count)`` times,
+       minimising representation collapse.
 
-    Classes at or above the target size are left entirely untouched.
+    3. **Surface-level diversity filter** — paraphrases whose character-level
+       similarity to the original exceeds ``1 - min_diversity_ratio`` are
+       rejected as near-duplicates.
+
+    4. **Semantic similarity filter** — optionally uses a small sentence-
+       transformer to keep only paraphrases that remain semantically faithful
+       to the original (within ``[min_semantic_similarity, max_semantic_similarity]``),
+       guarding against label drift.
+
+    5. **Retry logic** — up to *max_retries_per_sample* alternative sources
+       are tried before the best available candidate is accepted.
 
     Args:
-        ds                : DatasetDict with train / validation / test splits.
-        label2id          : class → integer id mapping (from label_utils).
-        target_size       : desired examples per under-represented class.
-                            If None, derived from *strategy*.
-        strategy          : "mean" | "median" | "majority" | int.
-                            Ignored when *target_size* is set explicitly.
-        paraphrase_column : text column whose content is paraphrased.
-        model_name        : HuggingFace Seq2Seq model for paraphrasing.
-        batch_size        : texts processed per GPU forward pass.
-        max_input_length  : tokenizer truncation limit for inputs.
-        max_output_length : maximum generated token length.
-        num_beams         : beam search width (higher → better quality,
-                            lower → faster generation).
-        seed              : random seed for source-example sampling.
+        ds                      : DatasetDict with train / validation / test splits.
+        label2id                : class → integer id mapping (from label_utils).
+        targets                 : per-class target counts produced by
+                                  ``_compute_targets``. When provided, *strategy*
+                                  and *down_ratio* are ignored.
+        strategy                : "soft" | "mean" | "median" | "majority" | int.
+                                  Used only when *targets* is None.
+        down_ratio              : fraction of majority class to keep (soft strategy).
+        paraphrase_column       : text column whose content is paraphrased.
+        model_name              : HuggingFace Seq2Seq paraphrase model.
+        batch_size              : texts per GPU forward pass.
+        max_input_length        : tokenizer truncation limit for inputs.
+        max_output_length       : maximum generated token length.
+        num_beams               : beam search width.
+        seed                    : random seed for source-example sampling.
+        max_multiplier          : hard cap on class growth (never exceed
+                                  ``count * max_multiplier``).
+        min_diversity_ratio     : minimum required surface dissimilarity.
+        min_semantic_similarity : lower cosine-similarity bound.
+        max_semantic_similarity : upper cosine-similarity bound.
+        use_semantic_filter     : whether to apply the sentence-transformer filter.
+        semantic_model_name     : sentence-transformers model for scoring.
+        max_retries_per_sample  : retries before accepting best available.
 
     Returns:
         DatasetDict with an upsampled training split.
-        Synthetic rows carry ``is_augmented = True``; original rows carry
-        ``is_augmented = False``.
+        Synthetic rows carry ``is_augmented = True``; originals carry ``False``.
 
     Requires:
-        pip install transformers sentencepiece
+        pip install transformers sentencepiece sentence-transformers
     """
     try:
-        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
         from tqdm.auto import tqdm
     except ImportError:
         raise ImportError(
-            "transformers and sentencepiece are required for "
-            "paraphrase_upsampling.\n"
+            "transformers and sentencepiece are required.\n"
             "Install with: pip install transformers sentencepiece"
         )
+
+    if use_semantic_filter:
+        try:
+            from sentence_transformers import SentenceTransformer
+            from sentence_transformers import util as st_util
+        except ImportError:
+            raise ImportError(
+                "sentence-transformers is required for the semantic filter.\n"
+                "Install with: pip install sentence-transformers\n"
+                "Or pass use_semantic_filter=False to skip it."
+            )
 
     _set_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_ds = ds["train"]
     counts = Counter(train_ds[LABEL_COLUMN])
-    target = target_size if target_size is not None else _compute_target(counts, strategy)
 
-    print(f"[paraphrase_upsampling] Target size per class : {target}")
-    print(f"[paraphrase_upsampling] Loading '{model_name}'...")
+    if targets is None:
+        targets = _compute_targets(counts, strategy=strategy, down_ratio=down_ratio)
 
+    print(f"\n[paraphrase_upsampling] Loading paraphrase model '{model_name}' ...")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
-    model.eval()
+    para_model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
+    para_model.eval()
+
+    sem_model = None
+    if use_semantic_filter:
+        print(f"[paraphrase_upsampling] Loading semantic model  '{semantic_model_name}' ...")
+        sem_model = SentenceTransformer(semantic_model_name)
+
+    # ── helpers ───────────────────────────────────────────────────────────────
 
     def _paraphrase_batch(texts: list[str]) -> list[str]:
-        """Run one GPU batch and return decoded paraphrases."""
         prefixed = ["paraphrase: " + t for t in texts]
         inputs = tokenizer(
             prefixed,
@@ -309,7 +382,7 @@ def paraphrase_upsampling(
             max_length=max_input_length,
         ).to(device)
         with torch.no_grad():
-            outputs = model.generate(
+            outputs = para_model.generate(
                 **inputs,
                 max_length=max_output_length,
                 num_beams=num_beams,
@@ -317,49 +390,192 @@ def paraphrase_upsampling(
             )
         return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
+    def _surface_similarity(a: str, b: str) -> float:
+        """Character-level similarity in [0, 1]."""
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+    def _semantic_similarity(a: str, b: str) -> float:
+        """Cosine similarity between sentence embeddings in [0, 1]."""
+        embs = sem_model.encode([a, b], convert_to_tensor=True)
+        return float(st_util.cos_sim(embs[0], embs[1]))
+
+    def _is_acceptable(original: str, paraphrase: str) -> bool:
+        """Return True if the paraphrase is diverse yet semantically faithful."""
+        if _surface_similarity(original, paraphrase) > (1.0 - min_diversity_ratio):
+            return False  # near-duplicate on the surface
+        if sem_model is not None:
+            sem_sim = _semantic_similarity(original, paraphrase)
+            if not (min_semantic_similarity <= sem_sim <= max_semantic_similarity):
+                return False  # semantically too distant or too close
+        return True
+
+    def _cyclic_indices(count: int, num_needed: int, rng: random.Random) -> list[int]:
+        """
+        Return *num_needed* source indices by cycling through [0, count) evenly.
+        Each index appears at most ``ceil(num_needed / count)`` times.
+        """
+        full_cycles = num_needed // count
+        remainder = num_needed % count
+        indices = list(range(count)) * full_cycles
+        indices += rng.sample(range(count), remainder)
+        rng.shuffle(indices)
+        return indices
+
+    # ── main loop ─────────────────────────────────────────────────────────────
+
     all_splits: list[Dataset] = []
 
     for label_str, count in counts.items():
         subset = train_ds.filter(lambda ex, l=label_str: ex[LABEL_COLUMN] == l)
         all_splits.append(subset)  # original examples always preserved
 
-        if count >= target:
+        raw_target = targets.get(label_str, count)
+        # Hard cap: never exceed count * max_multiplier regardless of target.
+        effective_target = min(raw_target, int(count * max_multiplier))
+
+        if count >= effective_target:
             continue
 
-        num_needed = target - count
+        num_needed = effective_target - count
         print(
-            f"[paraphrase_upsampling]   '{label_str}': {count} → {target} "
-            f"(+{num_needed} paraphrases)"
+            f"[paraphrase_upsampling]   '{label_str}': {count} → {effective_target} "
+            f"(+{num_needed} paraphrases, cap={int(count * max_multiplier)})"
         )
 
         rng = random.Random(seed)
-        source_indices = [rng.randrange(count) for _ in range(num_needed)]
+        source_indices = _cyclic_indices(count, num_needed, rng)
         source_rows = subset.select(source_indices)
+        originals = [str(t) if t else "" for t in source_rows[paraphrase_column]]
 
-        texts = [str(t) if t else "" for t in source_rows[paraphrase_column]]
-        paraphrases: list[str] = []
-
+        # ── first-pass generation ─────────────────────────────────────────────
+        generated: list[str] = []
         for i in tqdm(
-            range(0, len(texts), batch_size),
+            range(0, len(originals), batch_size),
             desc=f"  Paraphrasing '{label_str}'",
             leave=False,
         ):
-            paraphrases.extend(_paraphrase_batch(texts[i: i + batch_size]))
+            generated.extend(_paraphrase_batch(originals[i : i + batch_size]))
 
-        # Build synthetic rows: copy all columns, overwrite paraphrase_column
-        aug_dict = {col: list(source_rows[col]) for col in source_rows.column_names}
-        aug_dict[paraphrase_column] = paraphrases
-        aug_dict["is_augmented"] = [True] * num_needed
+        # ── quality filtering with retry ──────────────────────────────────────
+        accepted_paraphrases: list[str] = []
+        accepted_row_indices: list[int] = []
+
+        for idx, (orig, para) in enumerate(zip(originals, generated)):
+            if _is_acceptable(orig, para):
+                accepted_paraphrases.append(para)
+                accepted_row_indices.append(source_indices[idx])
+                continue
+
+            # Retry with different source examples.
+            best_para = para
+            best_source = source_indices[idx]
+            for _ in range(max_retries_per_sample):
+                retry_idx = rng.randrange(count)
+                retry_orig = str(subset[retry_idx][paraphrase_column] or "")
+                retry_para = _paraphrase_batch([retry_orig])[0]
+                if _is_acceptable(retry_orig, retry_para):
+                    best_para = retry_para
+                    best_source = retry_idx
+                    break
+            # Accept best available even when filters cannot be fully satisfied.
+            accepted_paraphrases.append(best_para)
+            accepted_row_indices.append(best_source)
+
+        final_source_rows = subset.select(accepted_row_indices)
+        aug_dict = {col: list(final_source_rows[col]) for col in final_source_rows.column_names}
+        aug_dict[paraphrase_column] = accepted_paraphrases
+        aug_dict["is_augmented"] = [True] * len(accepted_paraphrases)
         all_splits.append(Dataset.from_dict(aug_dict))
 
-    # Backfill is_augmented=False on original splits that predate the flag
     all_splits = _backfill_augmented_flag(all_splits)
-
     new_train = concatenate_datasets(all_splits).shuffle(seed=seed)
-    print(
-        f"[paraphrase_upsampling] Train size : {len(train_ds)} → {len(new_train)}"
-    )
+
+    # ── summary ───────────────────────────────────────────────────────────────
+    new_counts = Counter(new_train[LABEL_COLUMN])
+    print(f"\n[paraphrase_upsampling] Train size: {len(train_ds)} → {len(new_train)}")
+    print("[paraphrase_upsampling] Final distribution:")
+    for lbl, cnt in sorted(new_counts.items()):
+        orig = counts[lbl]
+        aug = cnt - orig
+        print(f"  {lbl:<30}: {orig:>4} + {aug:>4} synthetic = {cnt:>4}")
+
+    # Free GPU memory before returning.
+    del para_model, tokenizer
+    if sem_model is not None:
+        del sem_model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     return DatasetDict(
         {"train": new_train, "validation": ds["validation"], "test": ds["test"]}
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Smart Resampling (Combined Pipeline)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def smart_resampling(
+    ds: DatasetDict,
+    label2id: dict,
+    strategy: Union[str, int] = "soft",
+    down_ratio: float = 0.75,
+    embed_column: str = "interview_answer",
+    paraphrase_column: str = "interview_answer",
+    seed: int = 42,
+    **kwargs,
+) -> DatasetDict:
+    """
+    One-shot rebalancing: semantic downsampling + paraphrase upsampling.
+
+    Computes per-class targets once and passes them to both sub-routines so
+    the two steps are consistent.  Using ``strategy="soft"`` (default) is
+    recommended — it caps upsampling at 2× the original class size, keeping
+    data quality high and avoiding overfitting.
+
+    Args:
+        ds                : DatasetDict with train / validation / test splits.
+        label2id          : class → integer id mapping (from label_utils).
+        strategy          : "soft" | "mean" | "median" | "majority" | int.
+        down_ratio        : fraction of majority class to keep (soft strategy).
+        embed_column      : text column for sentence embeddings (downsampling).
+        paraphrase_column : text column to paraphrase (upsampling).
+        seed              : master random seed forwarded to both sub-routines.
+        **kwargs          : forwarded to both ``semantic_downsampling`` and
+                            ``paraphrase_upsampling`` (e.g. ``max_multiplier``,
+                            ``use_semantic_filter``).
+
+    Returns:
+        DatasetDict with a rebalanced training split; val/test unchanged.
+    """
+    counts = Counter(ds["train"][LABEL_COLUMN])
+    targets = _compute_targets(counts, strategy=strategy, down_ratio=down_ratio)
+
+    print(f"\n[smart_resampling] Strategy: '{strategy}'")
+    print("[smart_resampling] Target distribution:")
+    for lbl, cnt in counts.items():
+        print(f"  {lbl}: {cnt} → {targets[lbl]}")
+
+    result_ds = ds
+
+    if any(counts[lbl] > targets[lbl] for lbl in counts):
+        result_ds = semantic_downsampling(
+            result_ds,
+            label2id,
+            targets=targets,
+            embed_column=embed_column,
+            seed=seed,
+            **kwargs,
+        )
+
+    if any(counts[lbl] < targets[lbl] for lbl in counts):
+        result_ds = paraphrase_upsampling(
+            result_ds,
+            label2id,
+            targets=targets,
+            paraphrase_column=paraphrase_column,
+            seed=seed,
+            **kwargs,
+        )
+
+    return result_ds

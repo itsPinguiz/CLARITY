@@ -59,7 +59,7 @@ def get_output_dir(model_key: str, aug_name: str, loss_name: str) -> str:
     run_name = f"{model_key}__{aug_name}__{loss_name}"
 
     if is_colab():
-        base = Path("/content/results") / run_name
+        base = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/models") / run_name
     else:
         # Resolve relative to wherever the script is executed from
         base = Path("results") / run_name
@@ -146,6 +146,7 @@ def get_training_args(
         learning_rate=lr,
         num_train_epochs=num_epochs,
         weight_decay=weight_decay,
+        warmup_ratio=0.1,       
 
         # ── Logging ───────────────────────────────────────────────────────────
         logging_dir=os.path.join(output_dir, "logs"),

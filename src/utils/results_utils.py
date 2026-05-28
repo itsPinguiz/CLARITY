@@ -16,8 +16,7 @@ from pathlib import Path
 import numpy as np
 
 
-RESULTS_DIR = Path("/content/drive/MyDrive/progettoLLM/project/results")
-
+RESULTS_DIR = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/summary")
 
 def save_results(
     model_key: str,

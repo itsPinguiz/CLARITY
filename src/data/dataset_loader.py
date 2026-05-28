@@ -173,7 +173,7 @@ def _add_evasion_labels(dataset: Dataset) -> Dataset:
 
 def load_and_split_dataset(
     hf_dataset_name: str = "ailsntua/QEvasion",
-    test_size: float = 0.1,
+    test_size: float = 0.2,
     seed: int = 42,
     verbose: bool = True,
 ) -> DatasetDict:

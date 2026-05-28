@@ -32,19 +32,6 @@ MODEL_CONFIGS: dict = {
         "notes":           "Baseline from original notebook. Best for long inputs.",
     },
 
-    # ── DeBERTa-v3 base ───────────────────────────────────────────────────────
-    "deberta-v3-base": {
-        "model_id":        "microsoft/deberta-v3-base",
-        "max_length":      512,
-        "batch_size":      16,
-        "eval_batch_size": 32,
-        "grad_accum":      1,
-        "token_type_ids":  False,
-        "fp16_compatible": False,
-        "learning_rate": 1e-5,
-        "notes":           "Paper baseline. Strong on short/medium inputs (<=512 tok).",
-    },
-
     # ── RoBERTa base ──────────────────────────────────────────────────────────
     "roberta-base": {
         "model_id":        "roberta-base",
@@ -107,19 +94,6 @@ MODEL_CONFIGS: dict = {
         "fp16_compatible": True,
         "learning_rate": 5e-5,
         "notes":           "Distilled BERT. Very fast training and inference, slight drop in accuracy.",
-    },
-
-    # ── ALBERT base v2 (memory efficient) ─────────────────────────────────────
-    "albert-base-v2": {
-        "model_id":        "albert-base-v2",
-        "max_length":      512,
-        "batch_size":      32,  # Parameter sharing allows for larger batches
-        "eval_batch_size": 64,
-        "grad_accum":      1,
-        "token_type_ids":  True,  # ALBERT uses token_type_ids
-        "fp16_compatible": True,
-        "learning_rate": 3e-5,
-        "notes":           "A Lite BERT. Shares parameters across layers. Extremely memory efficient.",
     }
 }
 

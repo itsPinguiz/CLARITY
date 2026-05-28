@@ -63,6 +63,7 @@ def get_trainer(
     gamma: float = 2.0,
     num_classes: int | None = None,
     epsilon: float = 0.1,
+    **kwargs,
 ) -> Trainer:
     """
     Build and return the appropriate Trainer for a given loss name.
@@ -94,6 +95,7 @@ def get_trainer(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         compute_metrics=compute_metrics,
+        **kwargs,
     )
 
     if loss_name.lower() == "ce":
