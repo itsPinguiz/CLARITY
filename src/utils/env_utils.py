@@ -40,7 +40,7 @@ def get_device_info() -> dict:
         return {"has_cuda": False, "gpu_name": None, "gpu_mem_gb": None}
 
 
-def get_output_dir(model_key: str, aug_name: str, loss_name: str) -> str:
+def get_output_dir(model_key: str, bal_name: str, aug_name: str, loss_name: str) -> str:
     """
     Build the output directory path for a specific run.
 
@@ -50,13 +50,14 @@ def get_output_dir(model_key: str, aug_name: str, loss_name: str) -> str:
 
     Args:
         model_key  : short model identifier (e.g. "deberta-v3-base").
+        bal_name   : balancing strategy name.
         aug_name   : augmentation strategy name.
         loss_name  : loss function name.
 
     Returns:
         Absolute path string.
     """
-    run_name = f"{model_key}__{aug_name}__{loss_name}"
+    run_name = f"{model_key}__{bal_name}__{aug_name}__{loss_name}"
 
     if is_colab():
         base = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/models") / run_name
@@ -71,6 +72,7 @@ def get_output_dir(model_key: str, aug_name: str, loss_name: str) -> str:
 def get_training_args(
     model_key: str,
     model_cfg: dict,
+    bal_name: str = "none",
     aug_name: str = "none",
     loss_name: str = "focal",
     num_epochs: int = 5,
@@ -100,7 +102,7 @@ def get_training_args(
     """
     from transformers import TrainingArguments
 
-    output_dir = get_output_dir(model_key, aug_name, loss_name)
+    output_dir = get_output_dir(model_key, bal_name, aug_name, loss_name)
     device_info = get_device_info()
 
     use_fp16 = (

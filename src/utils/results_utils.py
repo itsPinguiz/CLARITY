@@ -20,6 +20,7 @@ RESULTS_DIR = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/s
 
 def save_results(
     model_key: str,
+    bal_name: str,
     aug_name: str,
     loss_name: str,
     metrics: dict,
@@ -30,6 +31,7 @@ def save_results(
 
     Args:
         model_key : short model identifier (e.g. "deberta-v3-base").
+        bal_name  : balancing strategy name.
         aug_name  : augmentation strategy name.
         loss_name : loss function name.
         metrics   : dict returned by compute_metrics or from trainer.evaluate().
@@ -41,11 +43,12 @@ def save_results(
     """
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    run_name = f"{model_key}__{aug_name}__{loss_name}"
+    run_name = f"{model_key}__{bal_name}__{aug_name}__{loss_name}"
     filepath = RESULTS_DIR / f"{run_name}.json"
 
     record = {
         "model_key":  model_key,
+        "bal_name":   bal_name,
         "aug_name":   aug_name,
         "loss_name":  loss_name,
         "timestamp":  datetime.now().isoformat(timespec="seconds"),
@@ -115,6 +118,7 @@ def compare_results(
     for r in records:
         row = {
             "model":       r["model_key"],
+            "balancing":   r["bal_name"],
             "augmentation": r["aug_name"],
             "loss":        r["loss_name"],
             "timestamp":   r.get("timestamp", ""),
@@ -133,25 +137,28 @@ def compare_results(
 
 
 def print_comparison_table(results_dir: str | Path = RESULTS_DIR) -> None:
-    """
-    Pretty-print the comparison table to stdout.
-    Useful as a quick summary at the end of a notebook.
-    """
-    df = compare_results(results_dir)
+    df = compare_results(results_dir,  metrics_to_show=['test_macro_f1', 'test_weighted_f1', 'test_accuracy',
+                     'val_macro_f1'])
     if df.empty:
         return
 
+    # Define the columns to show in the table, in the desired order
+    columns_to_show = [
+        'model', 'balancing', 'augmentation', 'loss', 'timestamp', 
+        'test_macro_f1', 'test_weighted_f1', 'test_accuracy', 'val_macro_f1'
+    ]
+    # Filter the DataFrame to include only the specified columns (if they exist)
+    df_filtered = df[[col for col in columns_to_show if col in df.columns]]
+
     try:
-        # Try rich for coloured output
         from rich.console import Console
         from rich.table import Table
 
-        table = Table(title="Experiment Results (sorted by Macro F1 ↓)")
-        for col in df.columns:
-            table.add_column(col, justify="right" if df[col].dtype != object else "left")
-        for _, row in df.iterrows():
+        table = Table(title="Experiment Results (sorted by Test Macro F1 ↓)")
+        for col in df_filtered.columns:
+            table.add_column(col, justify="right" if df_filtered[col].dtype != object else "left")
+        for _, row in df_filtered.iterrows():
             table.add_row(*[str(v) for v in row])
         Console().print(table)
     except ImportError:
-        # Fallback: plain print
-        print(df.to_string(index=False))
+        print(df_filtered.to_string(index=False))
