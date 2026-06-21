@@ -1,0 +1,27 @@
+{
+  "model_key": "distilbert-base-uncased",
+  "bal_name": "none",
+  "aug_name": "none",
+  "loss_name": "ce",
+  "timestamp": "2026-06-20T15:14:35",
+  "metrics": {
+    "val_macro_f1": 0.30441339591601113,
+    "val_weighted_f1": 0.33593858504535146,
+    "val_accuracy": 0.37681159420289856,
+    "test_macro_f1": 0.21143534495410365,
+    "test_weighted_f1": 0.19268142320953976,
+    "test_accuracy": 0.2597402597402597,
+    "val_clarity_macro_f1": 0.534104131381299,
+    "val_clarity_accuracy": 0.5594202898550724,
+    "test_clarity_macro_f1": 0.4195697577276525,
+    "test_clarity_accuracy": 0.42857142857142855
+  },
+  "extra": {
+    "model_id": "distilbert-base-uncased",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "evasion",
+    "train_size": 2758
+  }
+}

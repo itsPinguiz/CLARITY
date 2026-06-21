@@ -1,0 +1,27 @@
+{
+  "model_key": "distilbert-base-uncased",
+  "bal_name": "smart_resampling",
+  "aug_name": "tone_analysis",
+  "loss_name": "ce",
+  "timestamp": "2026-06-20T14:54:58",
+  "metrics": {
+    "val_macro_f1": 0.34456231302874346,
+    "val_weighted_f1": 0.32778848415507267,
+    "val_accuracy": 0.3333333333333333,
+    "test_macro_f1": 0.2917962005103308,
+    "test_weighted_f1": 0.21713026721550938,
+    "test_accuracy": 0.237012987012987,
+    "val_clarity_macro_f1": 0.5832659672055956,
+    "val_clarity_accuracy": 0.6260869565217392,
+    "test_clarity_macro_f1": 0.49034632711167564,
+    "test_clarity_accuracy": 0.5551948051948052
+  },
+  "extra": {
+    "model_id": "distilbert-base-uncased",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "evasion",
+    "train_size": 3874
+  }
+}

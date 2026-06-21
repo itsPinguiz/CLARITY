@@ -1,0 +1,27 @@
+{
+  "model_key": "roberta-base",
+  "bal_name": "none",
+  "aug_name": "none",
+  "loss_name": "ce",
+  "timestamp": "2026-06-20T15:24:23",
+  "metrics": {
+    "val_macro_f1": 0.36717769280777823,
+    "val_weighted_f1": 0.40852065098355617,
+    "val_accuracy": 0.43768115942028984,
+    "test_macro_f1": 0.2328825638903158,
+    "test_weighted_f1": 0.2578637602874993,
+    "test_accuracy": 0.30844155844155846,
+    "val_clarity_macro_f1": 0.6123976324397252,
+    "val_clarity_accuracy": 0.6608695652173913,
+    "test_clarity_macro_f1": 0.49620051526234676,
+    "test_clarity_accuracy": 0.5487012987012987
+  },
+  "extra": {
+    "model_id": "roberta-base",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "evasion",
+    "train_size": 2758
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "model_key": "roberta-base",
+  "bal_name": "smart_resampling",
+  "aug_name": "tone_analysis",
+  "loss_name": "ce",
+  "timestamp": "2026-06-19T11:46:35",
+  "metrics": {
+    "val_macro_f1": 0.6114056816632929,
+    "val_weighted_f1": 0.6756039749319456,
+    "val_accuracy": 0.6797101449275362,
+    "test_macro_f1": 0.5503906829239253,
+    "test_weighted_f1": 0.6452494032358627,
+    "test_accuracy": 0.6493506493506493
+  },
+  "extra": {
+    "model_id": "roberta-base",
+    "max_length": 512,
+    "num_epochs": 5,
+    "focal_gamma": 2.0,
+    "task": "clarity",
+    "train_size": 3874
+  }
+}

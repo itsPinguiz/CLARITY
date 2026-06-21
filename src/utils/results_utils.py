@@ -12,6 +12,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import TypeVarTuple
 
 import numpy as np
 
@@ -44,6 +45,12 @@ def save_results(
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     run_name = f"{model_key}__{bal_name}__{aug_name}__{loss_name}"
+   
+    if extra and extra.get("task") == "clarity":
+        run_name = f"c__{run_name}"
+    else:
+        run_name = f"e__{run_name}"
+
     filepath = RESULTS_DIR / f"{run_name}.json"
 
     record = {
@@ -118,6 +125,7 @@ def compare_results(
     for r in records:
         row = {
             "model":       r["model_key"],
+            "task":        r.get("extra", {}).get("task", ""),
             "balancing":   r["bal_name"],
             "augmentation": r["aug_name"],
             "loss":        r["loss_name"],
@@ -135,30 +143,78 @@ def compare_results(
 
     return df
 
-
 def print_comparison_table(results_dir: str | Path = RESULTS_DIR) -> None:
-    df = compare_results(results_dir,  metrics_to_show=['test_macro_f1', 'test_weighted_f1', 'test_accuracy',
-                     'val_macro_f1'])
+    df = compare_results(
+        results_dir,
+        metrics_to_show=[
+            'test_macro_f1',
+            'test_weighted_f1',
+            'test_accuracy',
+            'val_macro_f1'
+        ]
+    )
+
     if df.empty:
         return
 
-    # Define the columns to show in the table, in the desired order
+    df = df.sort_values(by='test_macro_f1',ascending=False,na_position='last')
+
     columns_to_show = [
-        'model', 'balancing', 'augmentation', 'loss', 'timestamp', 
-        'test_macro_f1', 'test_weighted_f1', 'test_accuracy', 'val_macro_f1'
+        'model',
+        'task',
+        'balancing',
+        'augmentation',
+        'loss',
+        'test_macro_f1',
+        'test_weighted_f1',
+        'test_accuracy',
+        'val_macro_f1'
     ]
-    # Filter the DataFrame to include only the specified columns (if they exist)
-    df_filtered = df[[col for col in columns_to_show if col in df.columns]]
+
+    df_filtered = df[[c for c in columns_to_show if c in df.columns]]
 
     try:
         from rich.console import Console
         from rich.table import Table
 
-        table = Table(title="Experiment Results (sorted by Test Macro F1 ↓)")
+        console = Console()
+
+        table = Table(
+            title="Experiment Results (sorted by Test Macro F1 ↓)",
+            expand=False,              
+            show_lines=False,
+            row_styles=["", "dim"]
+        )
+
         for col in df_filtered.columns:
-            table.add_column(col, justify="right" if df_filtered[col].dtype != object else "left")
+            is_numeric = df_filtered[col].dtype != object
+
+            table.add_column(
+                col,
+                justify="right" if is_numeric else "left",
+                no_wrap=False,
+                overflow="fold",
+                max_width=30
+            )
+
         for _, row in df_filtered.iterrows():
-            table.add_row(*[str(v) for v in row])
-        Console().print(table)
+            values = [
+                f"{v:.4f}" if isinstance(v, float) else str(v)
+                for v in row
+            ]
+
+            task = str(row.get("task", "")).lower()
+
+            if task == "clarity":
+                row_style = "green"
+            elif task == "evasion":
+                row_style = "cyan"
+            else:
+                row_style = None
+
+            table.add_row(*values, style=row_style)
+            
+        console.print(table)
+
     except ImportError:
-        print(df_filtered.to_string(index=False))
+        print(df_filtered.to_string(index=False, max_colwidth=None))
