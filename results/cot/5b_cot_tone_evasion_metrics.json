@@ -1,0 +1,20 @@
+{
+  "experiment": "5b_cot_tone_evasion",
+  "n_total": 308,
+  "n_parse_errors": 0,
+  "n_valid": 308,
+  "accuracy": 0.1461,
+  "macro_f1": 0.1156,
+  "weighted_f1": 0.1438,
+  "per_class_f1": {
+    "Explicit": 0.2151,
+    "Implicit": 0.0278,
+    "General": 0.1837,
+    "Partial/half-answer": 0.0,
+    "Dodging": 0.1404,
+    "Deflection": 0.1406,
+    "Declining to answer": 0.3333,
+    "Claims ignorance": 0.0,
+    "Clarification": 0.0
+  }
+}

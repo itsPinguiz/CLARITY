@@ -1,0 +1,14 @@
+{
+  "experiment": "5a_cot_tone_clarity",
+  "n_total": 308,
+  "n_parse_errors": 2,
+  "n_valid": 306,
+  "accuracy": 0.6667,
+  "macro_f1": 0.3841,
+  "weighted_f1": 0.6093,
+  "per_class_f1": {
+    "Clear Reply": 0.2936,
+    "Ambivalent": 0.7874,
+    "Clear Non-Reply": 0.0714
+  }
+}

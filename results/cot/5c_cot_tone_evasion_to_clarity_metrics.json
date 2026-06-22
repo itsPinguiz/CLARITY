@@ -1,0 +1,14 @@
+{
+  "experiment": "5c_cot_tone_evasion_to_clarity",
+  "n_total": 308,
+  "n_parse_errors": 0,
+  "n_valid": 308,
+  "accuracy": 0.6851,
+  "macro_f1": 0.403,
+  "weighted_f1": 0.6086,
+  "per_class_f1": {
+    "Clear Reply": 0.2151,
+    "Ambivalent": 0.8065,
+    "Clear Non-Reply": 0.1875
+  }
+}
