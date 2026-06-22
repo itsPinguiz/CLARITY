@@ -86,60 +86,8 @@ def no_augmentation(
     """Return the dataset unchanged (useful as the control condition)."""
     return ds
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. EDA — Random Deletion
-# ─────────────────────────────────────────────────────────────────────────────
-
-def random_deletion(
-    ds: DatasetDict,
-    label2id: dict,
-    aug_prob: float = 0.10,
-    seed: int = 42,
-    augment_minority_only: bool = True,
-    minority_threshold: float = 0.5,
-    **kwargs,
-) -> DatasetDict:
-    """
-    Randomly delete words from the text with probability *aug_prob*.
-    Preserves at least one word per text.
-    """
-    _set_seed(seed)
-
-    counts = Counter(ds["train"][LABEL_COLUMN])
-    max_count = max(counts.values())
-    minority_labels = (
-        {lbl for lbl, cnt in counts.items() if cnt < minority_threshold * max_count}
-        if augment_minority_only else None
-    )
-
-    def _delete_words(text: str) -> str:
-        words = _get_words(text)
-        if len(words) == 1:
-            return text
-        new_words = [w for w in words if random.random() > aug_prob]
-        return _join_words(new_words) if new_words else words[0]
-
-    def _augment_example(example: dict) -> dict:
-        aug = dict(example)
-        for col in TEXT_COLUMNS:
-            if col in aug and aug[col]:
-                aug[col] = _delete_words(aug[col])
-        return aug
-
-    train_ds = ds["train"]
-    to_augment = (
-        train_ds.filter(lambda ex: ex[LABEL_COLUMN] in minority_labels)
-        if minority_labels is not None else train_ds
-    )
-    new_train = concatenate_datasets([train_ds, to_augment.map(_augment_example)])
-
-    return DatasetDict(
-        {"train": new_train, "validation": ds["validation"], "test": ds["test"]}
-    )
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. Answer Length Categorization
+# 2. Answer Length Categorization
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -158,22 +106,21 @@ def add_length_category(
 
     print(f"\n[Augmentation] Adding length categories to train split...")
 
-    # Isola il dataset di training
     train_ds = ds["train"]
 
-    # 1. Calcolo del numero di parole
+    # 1. Word count calculation
     def _compute_length(example):
         text = str(example[text_column]) if example[text_column] else ""
         return {"word_count": len(text.split())}
 
     train_ds = train_ds.map(_compute_length, desc="Counting words")
 
-    # 2. Calcolo delle soglie (tertili)
+    # 2. Threshold calculation (tertiles)
     train_lengths = train_ds["word_count"]
     p33 = np.percentile(train_lengths, 33.33)
     p67 = np.percentile(train_lengths, 66.67)
 
-    # 3. Categorizzazione
+    # 3. Categorization
     def _categorize_length(example):
         count = example["word_count"]
         if count <= p33:
@@ -183,11 +130,9 @@ def add_length_category(
         else:
             return {"length_category": "Large"}
 
-    # Mappa la colonna e rimuove la colonna temporanea "word_count"
     train_ds = train_ds.map(_categorize_length, desc="Applying categories")
     train_ds = train_ds.remove_columns(["word_count"])
 
-    # Ricostruisce il DatasetDict modificando solo il train
     return DatasetDict({
         "train": train_ds,
         "validation": ds["validation"],
@@ -196,7 +141,7 @@ def add_length_category(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. Zero-Shot Tone Analysis 
+# 3. Zero-Shot Tone Analysis 
 # ─────────────────────────────────────────────────────────────────────────────
 
 def add_tone_feature(
@@ -227,7 +172,6 @@ def add_tone_feature(
         torch_dtype=torch.float16 if device == "cuda" else torch.float32
     )
 
-    # Funzione per analizzare un batch di righe
     def _analyze_batch(batch):
         texts = [
             " ".join(str(t).split()[:max_words]) if t else "Unknown" 
@@ -237,7 +181,6 @@ def add_tone_feature(
         tones = [res["labels"][0] for res in results]
         return {"tone": tones}
 
-    # Applica l'analisi SOLO al set di train
     train_ds = ds["train"].map(
         _analyze_batch, 
         batched=True, 
@@ -245,7 +188,6 @@ def add_tone_feature(
         desc="Analyzing tone (train)"
     )
 
-    # Ricostruisce e restituisce il DatasetDict
     return DatasetDict({
         "train": train_ds,
         "validation": ds["validation"],
@@ -259,7 +201,6 @@ def add_tone_feature(
 
 _AUGMENTATION_REGISTRY: dict[str, Callable] = {
     "none":                  no_augmentation,
-    "random_deletion":       random_deletion,
     "length_category":       add_length_category,
     "tone_analysis":         add_tone_feature,
     # ── Model-based resampling (src.data.resampling) ──────────────────────────

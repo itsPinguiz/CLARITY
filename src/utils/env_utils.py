@@ -40,7 +40,7 @@ def get_device_info() -> dict:
         return {"has_cuda": False, "gpu_name": None, "gpu_mem_gb": None}
 
 
-def get_output_dir(model_key: str, bal_name: str, aug_name: str, loss_name: str) -> str:
+def get_output_dir(model_key: str, bal_name: str, aug_name: str, loss_name: str, task: str = "evasion") -> str:
     """
     Build the output directory path for a specific run.
 
@@ -59,6 +59,11 @@ def get_output_dir(model_key: str, bal_name: str, aug_name: str, loss_name: str)
     """
     run_name = f"{model_key}__{bal_name}__{aug_name}__{loss_name}"
 
+    if task and task == "clarity":
+        run_name = f"c__{run_name}"
+    else:
+        run_name = f"e__{run_name}"
+
     if is_colab():
         base = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/models") / run_name
     else:
@@ -76,8 +81,8 @@ def get_training_args(
     aug_name: str = "none",
     loss_name: str = "focal",
     num_epochs: int = 5,
-    learning_rate: float = 3e-5,
     weight_decay: float = 0.01,
+    task: str = "evasion",
 ):
     """
     Build and return a TrainingArguments object adapted to the current
@@ -102,7 +107,7 @@ def get_training_args(
     """
     from transformers import TrainingArguments
 
-    output_dir = get_output_dir(model_key, bal_name, aug_name, loss_name)
+    output_dir = get_output_dir(model_key, bal_name, aug_name, loss_name, task)
     device_info = get_device_info()
 
     use_fp16 = (
