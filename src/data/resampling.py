@@ -269,7 +269,7 @@ def paraphrase_upsampling(
     max_multiplier: float = 2.0,
     min_diversity_ratio: float = 0.15,
     min_semantic_similarity: float = 0.60,
-    max_semantic_similarity: float = 0.92,
+    max_semantic_similarity: float = 0.90,
     use_semantic_filter: bool = True,
     semantic_model_name: str = "all-MiniLM-L6-v2",
     max_retries_per_sample: int = 3,
