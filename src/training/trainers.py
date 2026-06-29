@@ -15,7 +15,7 @@ Factory
 import torch
 from transformers import Trainer
 
-from src.training.losses import get_loss_fn, FocalLoss, WeightedCELoss, LabelSmoothingLoss
+from src.training.losses import get_loss_fn
 
 
 class CustomLossTrainer(Trainer):

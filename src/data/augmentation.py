@@ -37,14 +37,12 @@ Usage example
 """
 
 import random
-import math
-from collections import Counter
 from typing import Callable
 import torch
 from transformers import pipeline
 import numpy as np
 
-from datasets import DatasetDict, Dataset, concatenate_datasets
+from datasets import DatasetDict
 
 # Model-based resampling strategies (see src/data/resampling.py)
 from src.data.resampling import (

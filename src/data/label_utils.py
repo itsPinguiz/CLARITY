@@ -11,7 +11,7 @@ making them safe to call in any order or environment.
 """
 
 from collections import Counter
-from datasets import DatasetDict, Dataset
+from datasets import DatasetDict
 import torch
 
 

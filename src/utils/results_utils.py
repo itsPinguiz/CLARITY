@@ -9,12 +9,8 @@ Pandas DataFrame for easy inspection inside a notebook.
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import TypeVarTuple
-
-import numpy as np
 
 
 RESULTS_DIR = Path("/content/drive/MyDrive/progettoLLM/CLARITY/results/encoder/summary")
