@@ -1,9 +1,0 @@
-ID,Method,Task,Accuracy,Macro F1,Weighted F1
-1a,Zero-Shot,3-class,0.2792,0.28,0.332
-2a,CoT,3-class,0.2273,0.1897,0.2432
-3a,CoT + Table,3-class,0.5877,0.3669,0.5422
-4a,CoT + Table + RAG,3-class,0.5779,0.3565,0.5293
-1b,Zero-Shot,9-class,0.1055,0.1509,0.0875
-2b,CoT,9-class,0.1569,0.1724,0.1318
-3b,CoT + Table,9-class,0.1715,0.1573,0.1704
-4b,CoT + Table + RAG,9-class,0.1934,0.145,0.1718

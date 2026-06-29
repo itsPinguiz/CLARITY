@@ -1,5 +1,0 @@
-Experiment,Accuracy,Macro F1,Weighted F1,Parse Err
-1a — ZS 3-class,0.3604,0.3362,0.4092,0
-1b — ZS 9-class,0.1055,0.1509,0.0875,0
-2a — CoT 3-class,0.2273,0.1897,0.2432,0
-2b — CoT 9-class,0.1569,0.1724,0.1318,1
