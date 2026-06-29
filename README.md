@@ -150,6 +150,9 @@ Benchmarks **few-shot prompting** using the same Llama 3.1 8B-Instruct model. Th
 1. **One-Shot** — a single example from the training set
 2. **Three-Shot** — one example per clarity class
 3. **Nine-Shot** — one example per evasion sub-category (all 9 fine-grained labels)
+4. **Dynamic** — (k=3) most semantically similar training examples
+5. **Nine-Shots + Tone** — one example per evasion sub-category and tone information
+
 
 A fourth strategy explores **dynamic few-shot selection**, retrieving the most similar training examples at inference time using embedding similarity. Each strategy is evaluated on sub-tasks A, B, and C. Results are saved to `results/few_shots/`.
 
