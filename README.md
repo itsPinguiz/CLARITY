@@ -26,7 +26,8 @@ This repository contains the code and experiments developed for the **CLARITY Se
 The project explores two complementary families of approaches:
 
 1. **Encoder-based fine-tuning** — transformer models (BERT, RoBERTa, Longformer, etc.) fine-tuned to classify political answers directly.
-2. **LLM prompting and fine-tuning** — generative models (Llama 3.1 8B-Instruct) evaluated through zero-shot, chain-of-thought, few-shot, and QLoRA fine-tuning strategies.
+2. **LLM prompting** — `meta-llama/Meta-Llama-3.1-8B-Instruct` evaluated through zero-shot, chain-of-thought, and few-shot prompting strategies.
+3. **LLM fine-tuning** — `meta-llama/Llama-3.2-3B-Instruct` fine-tuned with 4-bit QLoRA + DoRA on the classification tasks.
 
 All experiments share a reproducible data pipeline built on the [QEvasion](https://huggingface.co/datasets/ailsntua/QEvasion) dataset and are evaluated using macro-F1 as the primary metric.
 
@@ -158,7 +159,7 @@ A fourth strategy explores **dynamic few-shot selection**, retrieving the most s
 
 **File**: `notebooks/05_clarity_tuned_llm.ipynb`
 
-Fine-tunes **Llama 3.1 8B-Instruct** with **4-bit QLoRA + DoRA** directly on Task A (3-class clarity classification: `Ambivalent`, `Clear Reply`, `Clear Non-Reply`). The model is trained end-to-end on the QEvasion training split and evaluated on the held-out test set. Results and the confusion matrix are saved to `results/task1/`.
+Fine-tunes **Llama 3.2 3B-Instruct** (`meta-llama/Llama-3.2-3B-Instruct`) with **4-bit QLoRA + DoRA** directly on Task A (3-class clarity classification: `Ambivalent`, `Clear Reply`, `Clear Non-Reply`). The model is trained end-to-end on the QEvasion training split and evaluated on the held-out test set. Results and the confusion matrix are saved to `results/task1/`.
 
 ---
 
@@ -166,7 +167,7 @@ Fine-tunes **Llama 3.1 8B-Instruct** with **4-bit QLoRA + DoRA** directly on Tas
 
 **File**: `notebooks/06_evasion_tuned_llm.ipynb`
 
-Fine-tunes **Llama 3.1 8B-Instruct** with **4-bit QLoRA + DoRA** on Task B (9-class evasion strategy classification). After inference, evasion predictions are mapped back to the 3 clarity macro-categories to also evaluate Task C performance. Results are saved to `results/task2/`.
+Fine-tunes **Llama 3.2 3B-Instruct** (`meta-llama/Llama-3.2-3B-Instruct`) with **4-bit QLoRA + DoRA** on Task B (9-class evasion strategy classification). After inference, evasion predictions are mapped back to the 3 clarity macro-categories to also evaluate Task C performance. Results are saved to `results/task2/`.
 
 ---
 
@@ -174,7 +175,7 @@ Fine-tunes **Llama 3.1 8B-Instruct** with **4-bit QLoRA + DoRA** on Task B (9-cl
 
 **File**: `notebooks/07_prompt_chain_llm.ipynb`
 
-Implements an advanced **Prompt Chaining** pipeline to handle *multi-barrelled questions* — a key limitation in political discourse analysis where a journalist asks several questions in a single turn. The pipeline first decomposes compound questions into atomic sub-questions using a splitter prompt, then evaluates the politician's answer against each sub-question independently using the fine-tuned Task 2 adapter. Final clarity predictions are obtained by aggregating per-sub-question evasion labels. This addresses cases where overall question complexity would mislead a single-pass model.
+Implements an advanced **Prompt Chaining** pipeline to handle *multi-barrelled questions* — a key limitation in political discourse analysis where a journalist asks several questions in a single turn. The pipeline uses the fine-tuned **Llama 3.2 3B-Instruct** Task 2 adapter: a splitter prompt first decomposes compound questions into atomic sub-questions, then the adapter evaluates the politician's answer against each sub-question independently. Final clarity predictions are obtained by aggregating per-sub-question evasion labels. This addresses cases where overall question complexity would mislead a single-pass model.
 
 ---
 
